@@ -53,37 +53,3 @@ Dependencies
 *   protobuf: For AAB manifest and resource parsing.
     
 *   plist\_parser: For iOS Info.plist decoding.
-
----
-
----
-
-### 2. The `example/main.dart`
-Pub.dev requires an example folder to verify your package. Create a file at `example/main.dart`:
-
-```dart
-import 'dart:io';
-import 'package:build_info_extractor/build_info_extractor.dart';
-
-void main() {
-  // Replace with a path to a real file for testing
-  final path = 'test_assets/app-release.apk';
-  
-  if (!File(path).existsSync()) {
-    print('Please provide a valid app file path.');
-    return;
-  }
-
-  try {
-    final metadata = AppInfoExtractor.extract(path);
-    
-    print('--- ${metadata.applicationLabel} ---');
-    print('ID:      ${metadata.applicationId}');
-    print('Version: ${metadata.versionName}');
-    print('SDK:     Min ${metadata.minSdkVersion} / Target ${metadata.targetSdkVersion}');
-    print('Perms:   ${metadata.usesPermissions.length} found');
-    
-  } catch (e) {
-    print('Extraction failed: $e');
-  }
-}
