@@ -31,6 +31,7 @@ class IpaParser {
             (key) => key.startsWith('NS') && key.endsWith('UsageDescription'),
           )
           .toList(),
+      platform: AppPlatform.ios
     );
   }
 }

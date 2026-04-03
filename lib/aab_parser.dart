@@ -64,6 +64,7 @@ class AabParser {
       targetSdkVersion: targetSdkVersion.isEmpty ? null : targetSdkVersion,
       applicationLabel: applicationLabel.isEmpty ? null : applicationLabel,
       usesPermissions: usesPermissions,
+      platform: AppPlatform.android
     );
   }
 

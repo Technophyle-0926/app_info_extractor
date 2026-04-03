@@ -98,6 +98,7 @@ class BinaryXmlParser {
       targetSdkVersion: targetSdkVersion,
       applicationLabel: applicationLabel,
       usesPermissions: usesPermissions,
+      platform: AppPlatform.android
     );
   }
 

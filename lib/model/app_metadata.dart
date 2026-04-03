@@ -1,5 +1,11 @@
 import 'dart:typed_data';
 
+enum AppPlatform {
+  android,
+  ios,
+  undefined
+}
+
 class AppMetadata {
   final String file;
   final String? applicationLabel;
@@ -18,6 +24,7 @@ class AppMetadata {
   final List<String> locales;
   final Uint8List? iconBytes;
   final bool isXmlIcon;
+  final AppPlatform platform;
 
   AppMetadata({
     required this.file,
@@ -37,5 +44,6 @@ class AppMetadata {
     this.locales = const [],
     this.iconBytes,
     this.isXmlIcon = false,
+    required this.platform,
   });
 }

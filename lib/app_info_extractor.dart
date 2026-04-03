@@ -64,6 +64,7 @@ class AppInfoExtractor {
             targetSdkVersion: metadata.targetSdkVersion,
             usesPermissions: metadata.usesPermissions,
             applicationLabel: realAppName,
+            platform: AppPlatform.android
           );
         }
       }
@@ -112,6 +113,7 @@ class AppInfoExtractor {
             applicationLabel: realAppName,
             iconBytes: iconResult.bytes,
             isXmlIcon: iconResult.isXml,
+            platform: AppPlatform.android
           );
         }
       }
@@ -148,6 +150,7 @@ class AppInfoExtractor {
       minSdkVersion: metadata.minSdkVersion,
       usesPermissions: metadata.usesPermissions,
       iconBytes: iconResult.bytes,
+      platform: AppPlatform.ios
     );
   }
 }
