@@ -1,4 +1,4 @@
-import 'package:app_info_extractor/model/app_metadata.dart';
+import 'package:app_info_extractor/src/model/app_metadata.dart';
 import 'package:app_info_extractor/src/generated/Resources.pb.dart' as pb;
 
 class AabParser {
@@ -21,7 +21,9 @@ class AabParser {
         if (attr.name == 'package') applicationId = attr.value.toString();
         if (attr.name == 'versionCode') versionCode = attr.value.toString();
         if (attr.name == 'versionName') versionName = attr.value.toString();
-        if (attr.name == 'compileSdkVersion') compileSdkVersion = attr.value.toString();
+        if (attr.name == 'compileSdkVersion') {
+          compileSdkVersion = attr.value.toString();
+        }
       }
 
       for (var childNode in manifestElement.child) {
@@ -37,8 +39,12 @@ class AabParser {
           }
         } else if (childElement.name == 'uses-sdk') {
           for (var attr in childElement.attribute) {
-            if (attr.name == 'minSdkVersion') minSdkVersion = attr.value.toString();
-            if (attr.name == 'targetSdkVersion') targetSdkVersion = attr.value.toString();
+            if (attr.name == 'minSdkVersion') {
+              minSdkVersion = attr.value.toString();
+            }
+            if (attr.name == 'targetSdkVersion') {
+              targetSdkVersion = attr.value.toString();
+            }
           }
         } else if (childElement.name == 'application') {
           for (var attr in childElement.attribute) {
@@ -55,17 +61,16 @@ class AabParser {
     }
 
     return AppMetadata(
-      file: filePath,
-      applicationId: applicationId.isEmpty ? null : applicationId,
-      versionCode: versionCode.isEmpty ? null : versionCode,
-      versionName: versionName.isEmpty ? null : versionName,
-      compileSdkVersion: compileSdkVersion.isEmpty ? null : compileSdkVersion,
-      minSdkVersion: minSdkVersion.isEmpty ? null : minSdkVersion,
-      targetSdkVersion: targetSdkVersion.isEmpty ? null : targetSdkVersion,
-      applicationLabel: applicationLabel.isEmpty ? null : applicationLabel,
-      usesPermissions: usesPermissions,
-      platform: AppPlatform.android
-    );
+        file: filePath,
+        applicationId: applicationId.isEmpty ? null : applicationId,
+        versionCode: versionCode.isEmpty ? null : versionCode,
+        versionName: versionName.isEmpty ? null : versionName,
+        compileSdkVersion: compileSdkVersion.isEmpty ? null : compileSdkVersion,
+        minSdkVersion: minSdkVersion.isEmpty ? null : minSdkVersion,
+        targetSdkVersion: targetSdkVersion.isEmpty ? null : targetSdkVersion,
+        applicationLabel: applicationLabel.isEmpty ? null : applicationLabel,
+        usesPermissions: usesPermissions,
+        platform: AppPlatform.android);
   }
 
   static String? resolveLabel(List<int> resourcesPbBytes, String refIdStr) {

@@ -1,14 +1,23 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:app_info_extractor/aab_parser.dart';
-import 'package:app_info_extractor/arsc_parser.dart';
-import 'package:app_info_extractor/binary_xml_parser.dart';
-import 'package:app_info_extractor/icon_extractor.dart';
-import 'package:app_info_extractor/ipa_parser.dart';
-import 'package:app_info_extractor/model/app_metadata.dart';
+
+// Internal imports - these are now in src/ to keep the lib/ root clean
+import 'package:app_info_extractor/src/aab_parser.dart';
+import 'package:app_info_extractor/src/arsc_parser.dart';
+import 'package:app_info_extractor/src/binary_xml_parser.dart';
+import 'package:app_info_extractor/src/icon_extractor.dart';
+import 'package:app_info_extractor/src/ipa_parser.dart';
+import 'package:app_info_extractor/src/model/app_metadata.dart';
 import 'package:archive/archive.dart';
 
+// EXPORTS: This is what the user will actually be able to use.
+// We export the model so they can access the AppMetadata class.
+export 'package:app_info_extractor/src/model/app_metadata.dart';
+
+/// The main entry point for extracting metadata from APK, AAB, and IPA files.
 class AppInfoExtractor {
+  /// Extracts [AppMetadata] from a [Uint8List] of bytes.
+  /// Requires the [fileName] (including extension) to determine the format.
   static AppMetadata extractFromBytes(Uint8List bytes, String fileName) {
     final archive = ZipDecoder().decodeBytes(bytes);
     final lowerPath = fileName.toLowerCase();
@@ -20,19 +29,25 @@ class AppInfoExtractor {
     } else if (lowerPath.endsWith('.ipa')) {
       return _parseIpa(archive, fileName);
     } else {
-      throw Exception('Unsupported format');
+      throw Exception('Unsupported format: $fileName');
     }
   }
 
+  /// Extracts [AppMetadata] from a file at the given [filePath].
   static AppMetadata extract(String filePath) {
     final file = File(filePath);
+    if (!file.existsSync()) {
+      throw FileSystemException('File not found', filePath);
+    }
     final bytes = file.readAsBytesSync();
     return extractFromBytes(bytes, filePath);
   }
 
   static AppMetadata _parseApk(Archive archive, String filePath) {
     ArchiveFile? manifestFile = archive.findFile('AndroidManifest.xml');
-    if (manifestFile == null) throw Exception('Invalid APK: AndroidManifest.xml not found.');
+    if (manifestFile == null) {
+      throw Exception('Invalid APK: AndroidManifest.xml not found.');
+    }
 
     final manifestBytes = manifestFile.content as List<int>;
 
@@ -41,6 +56,7 @@ class AppInfoExtractor {
       filePath,
     );
 
+    // Resolve resource-based labels (e.g., @string/app_name)
     if (metadata.applicationLabel != null &&
         metadata.applicationLabel!.startsWith('@ref/0x')) {
       ArchiveFile? arscFile = archive.findFile('resources.arsc');
@@ -54,18 +70,7 @@ class AppInfoExtractor {
         );
 
         if (realAppName != null) {
-          metadata = AppMetadata(
-            file: metadata.file,
-            applicationId: metadata.applicationId,
-            versionCode: metadata.versionCode,
-            versionName: metadata.versionName,
-            compileSdkVersion: metadata.compileSdkVersion,
-            minSdkVersion: metadata.minSdkVersion,
-            targetSdkVersion: metadata.targetSdkVersion,
-            usesPermissions: metadata.usesPermissions,
-            applicationLabel: realAppName,
-            platform: AppPlatform.android
-          );
+          metadata = metadata.copyWith(applicationLabel: realAppName);
         }
       }
     }
@@ -74,14 +79,12 @@ class AppInfoExtractor {
   }
 
   static AppMetadata _parseAab(Archive archive, String filePath) {
-    ArchiveFile? manifestFile = archive.findFile(
-      'base/manifest/AndroidManifest.xml',
-    );
+    ArchiveFile? manifestFile =
+        archive.findFile('base/manifest/AndroidManifest.xml');
 
     if (manifestFile == null) {
       throw Exception(
-        'Invalid AAB: base/manifest/AndroidManifest.xml not found.',
-      );
+          'Invalid AAB: base/manifest/AndroidManifest.xml not found.');
     }
 
     final manifestBytes = manifestFile.content as List<int>;
@@ -98,22 +101,14 @@ class AppInfoExtractor {
           pbBytes,
           metadata.applicationLabel!,
         );
+
         final iconResult = IconExtractor.extractIcon(archive, isIpa: false);
 
         if (realAppName != null) {
-          metadata = AppMetadata(
-            file: metadata.file,
-            applicationId: metadata.applicationId,
-            versionCode: metadata.versionCode,
-            versionName: metadata.versionName,
-            compileSdkVersion: metadata.compileSdkVersion,
-            minSdkVersion: metadata.minSdkVersion,
-            targetSdkVersion: metadata.targetSdkVersion,
-            usesPermissions: metadata.usesPermissions,
+          metadata = metadata.copyWith(
             applicationLabel: realAppName,
             iconBytes: iconResult.bytes,
             isXmlIcon: iconResult.isXml,
-            platform: AppPlatform.android
           );
         }
       }
@@ -141,16 +136,9 @@ class AppInfoExtractor {
 
     final iconResult = IconExtractor.extractIcon(archive, isIpa: true);
 
-    return AppMetadata(
-      file: metadata.file,
-      applicationId: metadata.applicationId,
-      versionCode: metadata.versionCode,
-      versionName: metadata.versionName,
-      applicationLabel: metadata.applicationLabel,
-      minSdkVersion: metadata.minSdkVersion,
-      usesPermissions: metadata.usesPermissions,
+    return metadata.copyWith(
       iconBytes: iconResult.bytes,
-      platform: AppPlatform.ios
+      platform: AppPlatform.ios,
     );
   }
 }

@@ -11,12 +11,17 @@ void main() {
   debugPrint('\n--- RUNNING APK X-RAY ---');
   final bytes = File(apkPath).readAsBytesSync();
   final archive = ZipDecoder().decodeBytes(bytes);
-  
+
   for (var file in archive.files) {
     String name = file.name.toLowerCase();
     // Print anything that looks like an icon or is in an image folder
-    if (name.contains('mipmap') || name.contains('drawable') || name.contains('icon') || name.contains('launcher')) {
-      if (name.endsWith('.png') || name.endsWith('.webp') || name.endsWith('.xml')) {
+    if (name.contains('mipmap') ||
+        name.contains('drawable') ||
+        name.contains('icon') ||
+        name.contains('launcher')) {
+      if (name.endsWith('.png') ||
+          name.endsWith('.webp') ||
+          name.endsWith('.xml')) {
         debugPrint('- Found: ${file.name} (${file.size} bytes)');
       }
     }
@@ -36,13 +41,13 @@ void main() {
     debugPrint('Target SDK:        ${metadata.targetSdkVersion}');
     debugPrint('App Label Pointer: ${metadata.applicationLabel}');
     debugPrint('\nPermissions Found: ${metadata.usesPermissions.length}');
-    debugPrint('Icon Bytes Extracted: ${metadata.iconBytes != null ? metadata.iconBytes!.length.toString() + " bytes" : "None"}');
+    debugPrint(
+        'Icon Bytes Extracted: ${metadata.iconBytes != null ? "${metadata.iconBytes!.length} bytes" : "None"}');
 
     // Print the first 5 permissions as a sanity check
     for (var i = 0; i < metadata.usesPermissions.length && i < 5; i++) {
       debugPrint(' - ${metadata.usesPermissions[i]}');
     }
-    
   } catch (e, stacktrace) {
     debugPrint('FAILED TO EXTRACT:');
     debugPrint(e.toString());

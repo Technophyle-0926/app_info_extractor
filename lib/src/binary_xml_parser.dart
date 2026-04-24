@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:app_info_extractor/model/app_metadata.dart';
+import 'package:app_info_extractor/src/model/app_metadata.dart';
 
 class BinaryXmlParser {
   static const int chunkTypeXml = 0x0003;
@@ -89,17 +89,16 @@ class BinaryXmlParser {
     }
 
     return AppMetadata(
-      file: filePath,
-      applicationId: applicationId,
-      versionCode: versionCode,
-      versionName: versionName,
-      compileSdkVersion: compileSdkVersion,
-      minSdkVersion: minSdkVersion,
-      targetSdkVersion: targetSdkVersion,
-      applicationLabel: applicationLabel,
-      usesPermissions: usesPermissions,
-      platform: AppPlatform.android
-    );
+        file: filePath,
+        applicationId: applicationId,
+        versionCode: versionCode,
+        versionName: versionName,
+        compileSdkVersion: compileSdkVersion,
+        minSdkVersion: minSdkVersion,
+        targetSdkVersion: targetSdkVersion,
+        applicationLabel: applicationLabel,
+        usesPermissions: usesPermissions,
+        platform: AppPlatform.android);
   }
 
   static String _getString(List<String> pool, int index) {
