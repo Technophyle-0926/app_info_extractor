@@ -13,8 +13,6 @@ dependencies:
   archive: ^4.0.9
   collection: ^1.19.1
   fixnum: ^1.1.1
-  flutter:
-    sdk: flutter
   plist_parser: ^0.2.7
   protobuf: ^6.0.0
 
