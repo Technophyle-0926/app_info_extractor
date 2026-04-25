@@ -2,4 +2,8 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   exclude:
-    - 'lib/src/generated/**'
+    - "lib/src/generated/**"
+
+linter:
+  rules:
+    - public_member_api_docs

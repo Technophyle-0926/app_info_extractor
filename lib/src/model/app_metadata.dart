@@ -1,27 +1,74 @@
 import 'dart:typed_data';
 
-enum AppPlatform { android, ios, undefined }
+/// Supported platforms for application metadata extraction.
+enum AppPlatform { 
+  /// Android platform (APK or AAB files).
+  android, 
+  
+  /// iOS platform (IPA files).
+  ios, 
+  
+  /// Fallback for unknown or unsupported platforms.
+  undefined 
+}
 
+/// A data model containing extracted metadata from an application file.
 class AppMetadata {
+  /// The path to the source application file.
   final String file;
+
+  /// The primary human-readable label of the application.
   final String? applicationLabel;
+
+  /// The unique package name or bundle identifier (e.g., com.example.app).
   final String? applicationId;
+
+  /// The internal version code used to distinguish app releases.
   final String? versionCode;
+
+  /// The user-visible version string (e.g., 1.0.0).
   final String? versionName;
+
+  /// The OS version name used to build the application.
   final String? platformBuildVersionName;
+
+  /// The OS version code used to build the application.
   final String? platformBuildVersionCode;
+
+  /// The version of the SDK the application was compiled against.
   final String? compileSdkVersion;
+
+  /// The internal codename of the compilation SDK.
   final String? compileSdkVersionCodename;
+
+  /// The minimum OS version required to run the application.
   final String? minSdkVersion;
+
+  /// The OS version that the application is optimized for.
   final String? targetSdkVersion;
+
+  /// A list of all available application labels (e.g., for different locales).
   final List<String> applicationLabels;
+
+  /// A list of permissions declared in the application manifest.
   final List<String> usesPermissions;
+
+  /// A list of native CPU architectures supported by the application.
   final List<String> nativeCodes;
+
+  /// A list of locales supported by the application.
   final List<String> locales;
+
+  /// The raw bytes of the application icon, if available.
   final Uint8List? iconBytes;
+
+  /// Whether the icon is in XML format (common in modern Android apps).
   final bool isXmlIcon;
+
+  /// The platform the application belongs to.
   final AppPlatform platform;
 
+  /// Creates a new [AppMetadata] instance with the provided fields.
   AppMetadata({
     required this.file,
     this.applicationLabel,

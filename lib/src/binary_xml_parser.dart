@@ -3,19 +3,42 @@ import 'dart:typed_data';
 
 import 'package:app_info_extractor/src/model/app_metadata.dart';
 
+/// A parser for the Android Binary XML format used in `AndroidManifest.xml`.
+///
+/// This class decodes the compiled XML structure, handles string pool extraction,
+/// and maps binary attribute types to human-readable strings.
 class BinaryXmlParser {
+  /// Chunk type identifier for an XML document.
   static const int chunkTypeXml = 0x0003;
+
+  /// Chunk type identifier for the string pool.
   static const int chunkTypeStringPool = 0x0001;
+
+  /// Chunk type identifier for the start of an XML tag.
   static const int chunkTypeXmlStartTag = 0x0102;
 
+  /// Resource type identifier for a reference (e.g., @ref/0x...).
   static const int typeReference = 0x01;
+
+  /// Resource type identifier for a plain string.
   static const int typeString = 0x03;
+
+  /// Resource type identifier for a decimal integer.
   static const int typeIntDec = 0x10;
+
+  /// Resource type identifier for a hexadecimal integer.
   static const int typeIntHex = 0x11;
+
+  /// Resource type identifier for a boolean value.
   static const int typeIntBoolean = 0x12;
 
+  /// Flag indicating the string pool uses UTF-8 encoding.
   static const int utf8Flag = 1 << 8;
 
+  /// Parses the binary [bytes] of an Android Manifest and returns an [AppMetadata] object.
+  ///
+  /// Requires [filePath] for internal reference in the model. Throws an [Exception]
+  /// if the provided bytes do not match the expected Binary XML header.
   static AppMetadata parseManifest(List<int> bytes, String filePath) {
     final byteData = ByteData.view(Uint8List.fromList(bytes).buffer);
     int offset = 0;
@@ -101,11 +124,13 @@ class BinaryXmlParser {
         platform: AppPlatform.android);
   }
 
+  /// Retrieves a string from the [pool] using the provided [index].
   static String _getString(List<String> pool, int index) {
     if (index == 0xFFFFFFFF || index >= pool.length) return '';
     return pool[index];
   }
 
+  /// Converts binary attribute data into a formatted string based on its [type].
   static String _getAttributeValue(List<String> pool, int type, int data) {
     switch (type) {
       case typeString:
@@ -123,6 +148,7 @@ class BinaryXmlParser {
     }
   }
 
+  /// Extracts the string pool from the binary XML [byteData] at [chunkOffset].
   static List<String> _parseStringPool(ByteData byteData, int chunkOffset) {
     int stringCount = byteData.getUint32(chunkOffset + 8, Endian.little);
     int flags = byteData.getUint32(chunkOffset + 16, Endian.little);
@@ -147,6 +173,7 @@ class BinaryXmlParser {
     return pool;
   }
 
+  /// Reads a UTF-8 encoded string from [byteData] at the specific [offset].
   static String _readUtf8String(ByteData byteData, int offset) {
     int pos = offset;
     pos += _skipLength(byteData, pos, isUtf8: true);
@@ -159,6 +186,7 @@ class BinaryXmlParser {
     return utf8.decode(stringBytes);
   }
 
+  /// Reads a UTF-16 encoded string from [byteData] at the specific [offset].
   static String _readUtf16String(ByteData byteData, int offset) {
     int pos = offset;
     pos += _skipLength(byteData, pos, isUtf8: false);
@@ -173,6 +201,7 @@ class BinaryXmlParser {
     );
   }
 
+  /// Internal utility to skip the length headers of strings in the pool.
   static int _skipLength(
     ByteData byteData,
     int offset, {

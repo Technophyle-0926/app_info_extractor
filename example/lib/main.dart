@@ -6,7 +6,10 @@ void main() {
   runApp(const AppInfoExample());
 }
 
+/// A sample application showcasing how to use [AppInfoExtractor] to retrieve
+/// metadata from an application file (e.g., .apk, .aab, or .ipa).
 class AppInfoExample extends StatefulWidget {
+  /// Creates a new instance of [AppInfoExample].
   const AppInfoExample({super.key});
 
   @override

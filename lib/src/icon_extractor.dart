@@ -1,7 +1,14 @@
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
+/// A utility class for locating and extracting application icons from
+/// compressed app packages (APK, AAB, or IPA).
 class IconExtractor {
+  /// Extracts the application icon from the provided [archive].
+  ///
+  /// Set [isIpa] to true if the archive represents an iOS application.
+  /// Returns a record containing the icon [bytes] and a boolean [isXml]
+  /// indicating if the icon is a Vector Drawable (common in Android).
   static ({Uint8List? bytes, bool isXml}) extractIcon(
     Archive archive, {
     bool isIpa = false,
@@ -13,6 +20,10 @@ class IconExtractor {
     }
   }
 
+  /// Internal helper to scan an iOS IPA archive for the highest resolution icon.
+  ///
+  /// Scans specifically for `appicon` naming conventions before falling back
+  /// to generic 'icon' or 'logo' patterns in the `.app` directory.
   static Uint8List? _huntIpaIcon(Archive archive) {
     ArchiveFile? bestIcon;
     int maxRes = 0;
@@ -46,10 +57,16 @@ class IconExtractor {
         : null;
   }
 
+  /// Internal helper to scan an Android APK/AAB archive for launcher icons.
+  ///
+  /// Prioritizes `mipmap` and `drawable` folders for launcher icons. If not found,
+  /// it attempts to locate assets within Flutter-specific paths or looks for
+  /// large image files as a last resort.
   static ({Uint8List? bytes, bool isXml}) _huntAndroidIcon(Archive archive) {
     ArchiveFile? bestImage;
     int maxSize = 0;
 
+    // Phase 1: Look for standard mipmap/drawable launcher icons
     for (var file in archive.files) {
       String name = file.name.toLowerCase();
       if ((name.contains('mipmap') || name.contains('drawable')) &&
@@ -63,6 +80,7 @@ class IconExtractor {
       }
     }
 
+    // Phase 2: Fallback to Flutter assets if standard icons are missing
     if (bestImage == null) {
       for (var file in archive.files) {
         String name = file.name.toLowerCase();
@@ -82,6 +100,7 @@ class IconExtractor {
       }
     }
 
+    // Phase 3: Final fallback to the largest image file found over 2KB
     if (bestImage == null) {
       for (var file in archive.files) {
         String name = file.name.toLowerCase();
