@@ -3,23 +3,35 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:image/image.dart' as img;
 
+/// Supported filetype for application icon extraction.
+enum FileType {
+  /// Android APK.
+  apk,
+
+  /// iOS IPA.
+  ipa,
+
+  /// Android AAB.
+  aab
+}
+
 /// A utility class for locating and extracting application icons from
 /// compressed app packages (APK, AAB, or IPA).
 class IconExtractor {
   /// Extracts the application icon from the provided [archive].
   ///
-  /// Set [isIpa] to true if the archive represents an iOS application.
+  /// Set [filetype] to true if the archive represents an iOS application.
   /// Returns a record containing the icon [bytes] and a boolean [isXml]
   /// indicating if the icon is a Vector Drawable (common in Android).
-  static ({Uint8List? bytes, bool isXml}) extractIcon(
-    Archive archive, {
-    bool isIpa = false,
+  static ({Uint8List? bytes, bool isXml}) extractIcon({
+    required Archive archive,
+    required FileType filetype,
   }) {
-    if (isIpa) {
-      return (bytes: _huntIpaIcon(archive), isXml: false);
-    } else {
-      return _huntAndroidIcon(archive);
-    }
+    return switch (filetype) {
+      FileType.ipa => (bytes: _huntIpaIcon(archive), isXml: false),
+      FileType.aab => _huntAppBundleIcon(archive),
+      FileType.apk => _huntApkIcon(archive)
+    };
   }
 
   /// Internal helper to scan an iOS IPA archive for the highest resolution icon.
@@ -192,7 +204,7 @@ class IconExtractor {
   /// Prioritizes `mipmap` and `drawable` folders for launcher icons. If not found,
   /// it attempts to locate assets within Flutter-specific paths or looks for
   /// large image files as a last resort.
-  static ({Uint8List? bytes, bool isXml}) _huntAndroidIcon(Archive archive) {
+  static ({Uint8List? bytes, bool isXml}) _huntAppBundleIcon(Archive archive) {
     ArchiveFile? bestImage;
     int maxSize = 0;
 
@@ -251,5 +263,143 @@ class IconExtractor {
     }
 
     return (bytes: null, isXml: false);
+  }
+
+  /// Scans an Android APK [archive] to find the most suitable application icon.
+  ///
+  /// This method employs a three-phase heuristic approach to handle both standard
+  /// and obfuscated APK structures:
+  ///
+  /// 1. **Filtering:** Skips non-files, excessively large assets, and Android
+  ///    9-patch images (`.9.png`) which are used for UI stretching rather than icons.
+  /// 2. **Phase 1 & 2 (Scoring):** Assigns weights to files based on their path
+  ///    and filename. It prioritizes `res/mipmap` over `drawable`, specifically
+  ///    looks for `ic_launcher`, and prefers higher density buckets (e.g., `xxxhdpi`).
+  /// 3. **Phase 3 (Geometric Rescue):** If no icons are found by name (common in
+  ///    obfuscated builds), it performs a binary header check on all square images
+  ///    within the `res/` folder to see if they match standard Android icon dimensions.
+  ///
+  /// Returns a record containing the icon [bytes] and a [isXml] flag.
+  static ({Uint8List? bytes, bool isXml}) _huntApkIcon(Archive archive) {
+    ArchiveFile? bestNamedIcon;
+    int highestScore = -1;
+
+    List<ArchiveFile> perfectlySquareCandidates = [];
+
+    for (var file in archive.files) {
+      String name = file.name.toLowerCase();
+
+      // THE STRICT BLOCKER: Basic sanity checks to ensure we are looking at valid image data.
+      if (!file.isFile || file.size == 0 || file.size > 250000) continue;
+      if (!name.endsWith('.png') && !name.endsWith('.webp')) continue;
+      if (name.endsWith('.9.png')) continue;
+
+      int score = 0;
+      final fileName = name.split('/').last;
+
+      // PHASE 1: Standard Name Scoring (For non-obfuscated APKs)
+      if (name.startsWith('res/')) {
+        // Preference for mipmaps (standard for icons) over general drawables
+        if (name.contains('mipmap') || name.contains('drawable')) score += 500;
+
+        // Highest weight for standard launcher naming conventions
+        if (fileName.contains('ic_launcher') || fileName.contains('app_icon')) {
+          score += 5000;
+          if (fileName.contains('foreground')) score += 1000;
+        } else if (fileName.contains('icon') || fileName.contains('logo')) {
+          score += 1000;
+        }
+
+        // Density-based boosting (prefer higher resolution)
+        if (name.contains('xxxhdpi')) {
+          score += 400;
+        } else if (name.contains('xxhdpi')) {
+          score += 300;
+        } else if (name.contains('xhdpi')) {
+          score += 200;
+        }
+      }
+      // PHASE 2: Flutter Fallback - Looks for standard Flutter project asset paths
+      else if (name.startsWith('assets/flutter_assets/')) {
+        if (fileName.contains('app_icon') || fileName.contains('ic_launcher')) {
+          score += 4000;
+        }
+      }
+
+      // Tie-breaker: If scores match, the larger file (higher resolution) wins.
+      if (score > 0) {
+        int finalScore = (score * 1000) + file.size;
+        if (finalScore > highestScore) {
+          highestScore = finalScore;
+          bestNamedIcon = file;
+        }
+      }
+      // PHASE 3: The Obfuscation Trap (Geometry check)
+      // If the file is in 'res/' but has a randomized name (e.g., 'a.png'),
+      // check if its dimensions match standard Android icon sizes.
+      else if (score == 0 && name.startsWith('res/')) {
+        final rawBytes = file.content as List<int>;
+        if (_isPerfectAndroidIcon(rawBytes)) {
+          perfectlySquareCandidates.add(file);
+        }
+      }
+    }
+
+    // --- DECISION TIME ---
+    // Best case: We found a file that looks like an icon by name and path.
+    if (bestNamedIcon != null) {
+      log("APK Icon Found by Name: ${bestNamedIcon.name}");
+      return (
+        bytes: Uint8List.fromList(bestNamedIcon.content as List<int>),
+        isXml: false,
+      );
+    }
+
+    // Fallback: Use the largest square candidate found via geometry check.
+    if (perfectlySquareCandidates.isNotEmpty) {
+      perfectlySquareCandidates.sort((a, b) => b.size.compareTo(a.size));
+      log("APK Obfuscated! Rescued via Geometry check: ${perfectlySquareCandidates.first.name}");
+      return (
+        bytes: Uint8List.fromList(
+            perfectlySquareCandidates.first.content as List<int>),
+        isXml: false,
+      );
+    }
+
+    log("APK Icon extraction completely failed. No valid candidates.");
+    return (bytes: null, isXml: false);
+  }
+
+  /// Validates if a byte array represents a PNG icon suitable for Android.
+  ///
+  /// This performs a "shallow" check by reading the PNG IHDR chunk directly.
+  /// It verifies:
+  /// 1. The standard PNG magic numbers.
+  /// 2. That the image is a perfect square (width == height).
+  /// 3. That the dimensions match standard Android buckets (48, 72, 96, 144, 192, or 512).
+  ///
+  /// This is extremely efficient as it avoids full image decoding.
+  static bool _isPerfectAndroidIcon(List<int> bytes) {
+    if (bytes.length < 24) return false;
+
+    // Verify PNG Signature
+    if (bytes[0] != 137 || bytes[1] != 80 || bytes[2] != 78 || bytes[3] != 71) {
+      return false;
+    }
+
+    try {
+      final reader = ByteData.view(Uint8List.fromList(bytes).buffer);
+
+      // Width is at offset 16, Height at offset 20 in the IHDR chunk
+      final width = reader.getUint32(16);
+      final height = reader.getUint32(20);
+
+      if (width != height) return false;
+
+      final validDimensions = [48, 72, 96, 144, 192, 512];
+      return validDimensions.contains(width);
+    } catch (e) {
+      return false;
+    }
   }
 }
