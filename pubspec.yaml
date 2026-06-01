@@ -1,6 +1,6 @@
 name: app_info_extractor
 description: A Flutter plugin to extract metadata, version, and signatures from installed applications.
-version: 1.0.0
+version: 1.1.0
 homepage: https://meetvishavadia.dev
 repository: https://github.com/Technophyle-0926/app_info_extractor
 issue_tracker: https://github.com/Technophyle-0926/app_info_extractor/issues
