@@ -1,16 +1,36 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+/// A specialized parser for the Android Resource Table (`resources.arsc`) format.
+///
+/// This class handles the binary decoding of compiled Android resources,
+/// enabling the resolution of resource IDs (e.g., `@ref/0x7f...`) into
+/// human-readable strings.
 class ArscParser {
+  /// Chunk type identifier for the Resource Table.
   static const int chunkTypeTable = 0x0002;
+
+  /// Chunk type identifier for String Pools.
   static const int chunkTypeStringPool = 0x0001;
+
+  /// Chunk type identifier for Packages within the table.
   static const int chunkTypePackage = 0x0200;
+
+  /// Chunk type identifier for Type specifications.
   static const int chunkTypeType = 0x0201;
+
+  /// Flag indicating that strings in the pool are encoded in UTF-8.
   static const int utf8Flag = 1 << 8;
 
+  /// Resolves a resource reference string (e.g., `@ref/0x7f010001`) to its
+  /// actual string value from the provided [bytes] of a `resources.arsc` file.
+  ///
+  /// If the [refPointer] does not start with the expected prefix or the
+  /// resource cannot be found, it returns the original pointer or null.
   static String? resolveLabel(List<int> bytes, String refPointer) {
     if (!refPointer.startsWith('@ref/0x')) return refPointer;
 
+    // Parse the 32-bit hex resource ID
     int resId = int.parse(refPointer.replaceAll('@ref/0x', ''), radix: 16);
     int targetTypeId = (resId >> 16) & 0xFF;
     int targetEntryId = resId & 0xFFFF;
@@ -18,12 +38,14 @@ class ArscParser {
     final byteData = ByteData.view(Uint8List.fromList(bytes).buffer);
     int offset = 0;
 
+    // Validate the header
     int type = byteData.getUint16(offset, Endian.little);
     if (type != chunkTypeTable) return null;
     offset += 12;
 
     List<String> globalStringPool = [];
 
+    // Iterate through chunks to find String Pool and Package information
     while (offset < byteData.lengthInBytes) {
       int chunkType = byteData.getUint16(offset, Endian.little);
       int chunkSize = byteData.getUint32(offset + 4, Endian.little);
@@ -44,6 +66,7 @@ class ArscParser {
     return null;
   }
 
+  /// Internal helper to navigate the Package chunk and locate the target resource.
   static String? _parsePackage(
     ByteData byteData,
     int packageOffset,
@@ -83,11 +106,13 @@ class ArscParser {
               int entrySize = byteData.getUint16(entryAbsOffset, Endian.little);
               int flags = byteData.getUint16(entryAbsOffset + 2, Endian.little);
 
+              // 0x0001 flag indicates a complex resource (Map), which we skip
               if ((flags & 0x0001) == 0) {
                 int valueOffset = entryAbsOffset + entrySize;
                 int dataType = byteData.getUint8(valueOffset + 3);
                 int data = byteData.getUint32(valueOffset + 4, Endian.little);
 
+                // 0x03 indicates a reference into the global string pool
                 if (dataType == 0x03) {
                   return globalPool[data];
                 }
@@ -101,11 +126,13 @@ class ArscParser {
     return null;
   }
 
+  /// Parses the String Pool chunk to extract all literal strings.
   static List<String> _parseStringPool(ByteData byteData, int chunkOffset) {
     int stringCount = byteData.getUint32(chunkOffset + 8, Endian.little);
     int flags = byteData.getUint32(chunkOffset + 16, Endian.little);
     int stringsOffset = byteData.getUint32(chunkOffset + 20, Endian.little);
     bool isUtf8 = (flags & utf8Flag) != 0;
+
     List<String> pool = [];
     int offsetsStart = chunkOffset + 28;
     int stringDataStart = chunkOffset + stringsOffset;
@@ -125,10 +152,11 @@ class ArscParser {
     return pool;
   }
 
+  /// Reads a null-terminated UTF-8 string from the given [offset].
   static String _readUtf8String(ByteData byteData, int offset) {
     int pos = offset;
-    pos += _skipLength(byteData, pos, isUtf8: true);
-    pos += _skipLength(byteData, pos, isUtf8: true);
+    pos += _skipLength(byteData, pos, isUtf8: true); // Skip string length
+    pos += _skipLength(byteData, pos, isUtf8: true); // Skip encoded length
     List<int> stringBytes = [];
     while (byteData.getUint8(pos) != 0x00) {
       stringBytes.add(byteData.getUint8(pos));
@@ -137,6 +165,7 @@ class ArscParser {
     return utf8.decode(stringBytes);
   }
 
+  /// Reads a null-terminated UTF-16 string from the given [offset].
   static String _readUtf16String(ByteData byteData, int offset) {
     int pos = offset;
     pos += _skipLength(byteData, pos, isUtf8: false);
@@ -151,6 +180,7 @@ class ArscParser {
     );
   }
 
+  /// Internal logic to calculate how many bytes to skip to bypass length headers.
   static int _skipLength(
     ByteData byteData,
     int offset, {

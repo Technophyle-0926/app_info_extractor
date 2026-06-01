@@ -1,7 +1,15 @@
 import 'package:app_info_extractor/src/model/app_metadata.dart';
 import 'package:app_info_extractor/src/generated/Resources.pb.dart' as pb;
 
+/// A specialized parser for Android App Bundle (AAB) files.
+///
+/// This class handles the extraction and decoding of the binary XML manifest
+/// and the resolution of resources from the [pb.ResourceTable].
 class AabParser {
+  /// Parses the binary [bytes] of an AAB manifest file and returns [AppMetadata].
+  ///
+  /// Requires the [filePath] of the original AAB for reference in the returned model.
+  /// It extracts core attributes like package name, versioning, and permissions.
   static AppMetadata parseManifest(List<int> bytes, String filePath) {
     final node = pb.XmlNode.fromBuffer(bytes);
 
@@ -73,11 +81,17 @@ class AabParser {
         platform: AppPlatform.android);
   }
 
+  /// Resolves a resource string from the `resources.pb` table using a reference ID.
+  ///
+  /// The [refIdStr] is decoded using bitwise operations to find the specific
+  /// Package, Type, and Entry ID within the [resourcesPbBytes].
   static String? resolveLabel(List<int> resourcesPbBytes, String refIdStr) {
     int? resId = int.tryParse(refIdStr);
 
     if (resId == null) return refIdStr;
 
+    // Decoding the 32-bit Resource ID: PPTTEEEE
+    // P = Package ID, T = Type ID, E = Entry ID
     int targetPackageId = (resId >> 24) & 0xFF;
     int targetTypeId = (resId >> 16) & 0xFF;
     int targetEntryId = resId & 0xFFFF;
