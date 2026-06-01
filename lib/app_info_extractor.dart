@@ -69,7 +69,8 @@ class AppInfoExtractor {
           metadata.applicationLabel!,
         );
 
-        final iconResult = IconExtractor.extractIcon(archive: archive, filetype: FileType.apk);
+        final iconResult =
+            IconExtractor.extractIcon(archive: archive, filetype: FileType.apk);
 
         if (realAppName != null) {
           metadata = metadata.copyWith(
@@ -108,7 +109,8 @@ class AppInfoExtractor {
           metadata.applicationLabel!,
         );
 
-        final iconResult = IconExtractor.extractIcon(archive: archive, filetype: FileType.aab);
+        final iconResult =
+            IconExtractor.extractIcon(archive: archive, filetype: FileType.aab);
 
         if (realAppName != null) {
           metadata = metadata.copyWith(
@@ -140,7 +142,8 @@ class AppInfoExtractor {
     final plistBytes = plistFile.content as List<int>;
     AppMetadata metadata = IpaParser.parseManifest(plistBytes, filePath);
 
-    final iconResult = IconExtractor.extractIcon(archive: archive, filetype: FileType.ipa);
+    final iconResult =
+        IconExtractor.extractIcon(archive: archive, filetype: FileType.ipa);
 
     return metadata.copyWith(
       iconBytes: iconResult.bytes,

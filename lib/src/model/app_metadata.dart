@@ -1,15 +1,15 @@
 import 'dart:typed_data';
 
 /// Supported platforms for application metadata extraction.
-enum AppPlatform { 
+enum AppPlatform {
   /// Android platform (APK or AAB files).
-  android, 
-  
+  android,
+
   /// iOS platform (IPA files).
-  ios, 
-  
+  ios,
+
   /// Fallback for unknown or unsupported platforms.
-  undefined 
+  undefined
 }
 
 /// A data model containing extracted metadata from an application file.

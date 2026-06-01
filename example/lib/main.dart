@@ -36,7 +36,8 @@ class _AppInfoExampleState extends State<AppInfoExample> {
       final metadata = AppInfoExtractor.extract(path);
 
       setState(() {
-        _displayText = '''
+        _displayText =
+            '''
 --- ${metadata.applicationLabel} ---
 ID:      ${metadata.applicationId}
 Version: ${metadata.versionName}
@@ -56,9 +57,7 @@ Perms:   ${metadata.usesPermissions.length} found
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('App Info Extractor Example'),
-        ),
+        appBar: AppBar(title: const Text('App Info Extractor Example')),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
