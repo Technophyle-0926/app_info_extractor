@@ -45,7 +45,6 @@ class IconExtractor {
     for (var file in archive.files) {
       // Convert to lowercase to avoid case-sensitivity bugs
       final path = file.name.toLowerCase();
-      log("File Size: ${file.size}");
 
       // THE WILDCARD MATCH
       // Look for a path that starts with Payload, has an .app folder,
@@ -53,6 +52,7 @@ class IconExtractor {
       if (path.startsWith('payload/') &&
           path.contains('.app/') &&
           path.endsWith('appicon60x60@2x.png')) {
+        log("File Size: ${file.size}", name: 'App Icon Extractor');
         targetIcon = file;
         break; // Found it! Stop searching.
       }
@@ -60,18 +60,17 @@ class IconExtractor {
 
     // Return safely if not found
     if (targetIcon == null) {
-      log("Icon not found in this IPA.");
+      log("Icon not found in this IPA.", name: 'App Icon Extractor');
       return null;
     }
 
     // Decrush and return the Web-Safe PNG
     try {
       final rawBytes = targetIcon.content as List<int>;
-      log("Raw Bytes: $rawBytes");
       final safeBytes = decrushApplePng(Uint8List.fromList(rawBytes));
       return safeBytes;
     } catch (e) {
-      log("Failed to decrush image: $e");
+      log("Failed to decrush image: $e", name: 'App Icon Extractor');
     }
 
     return null;
@@ -169,7 +168,7 @@ class IconExtractor {
 
       return Uint8List.fromList(img.encodePng(decodedImage));
     } catch (e) {
-      log("CgBI Decrush failed: $e");
+      log("CgBI Decrush failed: $e", name: 'App Icon Extractor');
       return null;
     }
   }
@@ -348,7 +347,7 @@ class IconExtractor {
     // --- DECISION TIME ---
     // Best case: We found a file that looks like an icon by name and path.
     if (bestNamedIcon != null) {
-      log("APK Icon Found by Name: ${bestNamedIcon.name}");
+      log("APK Icon Found by Name: ${bestNamedIcon.name}", name: 'App Icon Extractor');
       return (
         bytes: Uint8List.fromList(bestNamedIcon.content as List<int>),
         isXml: false,
@@ -358,7 +357,7 @@ class IconExtractor {
     // Fallback: Use the largest square candidate found via geometry check.
     if (perfectlySquareCandidates.isNotEmpty) {
       perfectlySquareCandidates.sort((a, b) => b.size.compareTo(a.size));
-      log("APK Obfuscated! Rescued via Geometry check: ${perfectlySquareCandidates.first.name}");
+      log("APK Obfuscated! Rescued via Geometry check: ${perfectlySquareCandidates.first.name}", name: 'App Icon Extractor');
       return (
         bytes: Uint8List.fromList(
             perfectlySquareCandidates.first.content as List<int>),
@@ -366,7 +365,7 @@ class IconExtractor {
       );
     }
 
-    log("APK Icon extraction completely failed. No valid candidates.");
+    log("APK Icon extraction completely failed. No valid candidates.", name: 'App Icon Extractor');
     return (bytes: null, isXml: false);
   }
 
